@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 from functools import lru_cache
-from typing import Any
+from typing import Any, Union, Dict, List
 
 # Load environment variables
 load_dotenv()
@@ -92,7 +92,10 @@ def get_app_setting(name: str) -> Any:
 
 def get_export_setting(name: str) -> Any:
     """Get an export setting by name."""
-    return get_export_settings()[name]
+    settings = get_export_settings()
+    if name in settings:
+        return settings[name]
+    raise KeyError(f"Export setting '{name}' not found")
 
 # Create directories if they don't exist
 for directory in get_directories().values():
