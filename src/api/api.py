@@ -177,9 +177,6 @@ class ExportResource(Resource):
             elif platform == 'hubspot':
                 # Implement HubSpot export
                 pass
-            elif platform == 'zendesk':
-                # Implement Zendesk export
-                pass
             else:
                 return {'error': f'Unsupported platform: {platform}'}, 400
             

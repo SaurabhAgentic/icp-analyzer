@@ -87,7 +87,7 @@ components:
       properties:
         platform:
           type: string
-          enum: [salesforce, hubspot, zendesk]
+          enum: [salesforce, hubspot]
           description: Platform to export data to
         analysis_data:
           type: object

@@ -106,10 +106,6 @@ class Config:
         self.SALESFORCE_SECURITY_TOKEN = os.getenv('SALESFORCE_SECURITY_TOKEN', '')
         
         self.HUBSPOT_API_KEY = os.getenv('HUBSPOT_API_KEY', '')
-        
-        self.ZENDESK_EMAIL = os.getenv('ZENDESK_EMAIL', '')
-        self.ZENDESK_API_TOKEN = os.getenv('ZENDESK_API_TOKEN', '')
-        self.ZENDESK_SUBDOMAIN = os.getenv('ZENDESK_SUBDOMAIN', '')
     
     def get_redis_url(self) -> str:
         """Get Redis URL with authentication if configured."""
