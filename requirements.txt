@@ -1,60 +1,60 @@
 # Web Scraping
-beautifulsoup4==4.12.2
-requests==2.31.0
+beautifulsoup4
+requests
 
 # Natural Language Processing
-textblob==0.17.1
-spacy==3.7.2
-scikit-learn==1.4.0
-networkx==3.2.1
-wordcloud==1.9.3
+textblob
+spacy
+scikit-learn
+networkx
+wordcloud
 
 # Web Development
-flask==2.0.1
-flask-restful==0.3.10
-flask-jwt-extended==4.6.0
-flask-limiter==3.5.0
-apispec==6.3.0
-apispec-webframeworks==0.5.2
+flask
+flask-restful
+flask-jwt-extended
+flask-limiter
+apispec
+apispec-webframeworks
 
 # Report Generation
-reportlab==4.0.8
-python-pptx==0.6.23
-python-docx==1.0.1
+reportlab
+python-pptx
+python-docx
 
 # Data Processing and Visualization
-pandas==2.0.3
-matplotlib==3.8.2
-seaborn==0.13.0
+pandas
+matplotlib
+seaborn
 
 # Performance and Scalability
-redis==4.5.4
-celery==5.2.7
-pymongo==4.3.3
-motor==3.3.2
-aiohttp==3.9.3
-uvicorn==0.27.1
-gunicorn==20.1.0
+redis
+celery
+pymongo
+motor
+aiohttp
+uvicorn
+gunicorn
 
 # Testing and Monitoring
-pytest==7.4.0
-pytest-asyncio==0.23.5
-pytest-cov==4.1.0
-prometheus-client==0.19.0
-sentry-sdk==1.40.4
+pytest
+pytest-asyncio
+pytest-cov
+prometheus-client
+sentry-sdk
 
 # Integration
-simple-salesforce==1.12.5
-hubspot-api-client==8.2.0
+simple-salesforce
+hubspot-api-client
 
 # Development Tools
-black==23.7.0
-flake8==6.1.0
-mypy==1.5.1
-isort==5.12.0
+black
+flake8
+mypy
+isort
 
-nltk==3.8.1
-selenium==4.18.1
-webdriver-manager==4.0.1
-python-dotenv==1.0.0
+nltk
+selenium
+webdriver-manager
+python-dotenv
 en-core-web-sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl 
