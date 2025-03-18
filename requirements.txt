@@ -27,12 +27,12 @@ pandas
 matplotlib
 seaborn
 
-# Performance and Scalability
-redis
-celery
-pymongo
-motor
-aiohttp
+# Optional: Performance and Scalability
+# redis
+# celery
+# pymongo
+# motor
+# aiohttp
 uvicorn
 gunicorn
 

@@ -14,9 +14,9 @@ A web application for analyzing ICP (Intracranial Pressure) data with advanced v
 ## Prerequisites
 
 - Python 3.8 or higher
-- MongoDB 4.4 or higher
-- Redis 6.2 or higher
 - Node.js 14 or higher (for frontend development)
+- Optional: MongoDB 4.4 or higher (for persistent storage)
+- Optional: Redis 6.2 or higher (for caching and task queue)
 
 ## Installation
 
@@ -46,13 +46,12 @@ cp .env.example .env
 
 ## Development
 
-1. Start MongoDB and Redis services
-2. Run the development server:
+1. Start the development server:
 ```bash
 flask run
 ```
 
-3. Run tests:
+2. Run tests:
 ```bash
 pytest
 ```
@@ -65,8 +64,8 @@ pytest
    - `PYTHON_VERSION`: 3.8
    - `FLASK_ENV`: production
    - `FLASK_APP`: wsgi.py
-   - `MONGODB_URI`: Your MongoDB connection string
-   - `REDIS_URL`: Your Redis connection string
+   - `USE_REDIS`: false (set to true if using Redis)
+   - `USE_MONGODB`: false (set to true if using MongoDB)
    - `SECRET_KEY`: Your secret key
    - `JWT_SECRET_KEY`: Your JWT secret key
 

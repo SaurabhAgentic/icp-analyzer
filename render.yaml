@@ -11,10 +11,10 @@ services:
         value: production
       - key: FLASK_APP
         value: wsgi.py
-      - key: MONGODB_URI
-        sync: false
-      - key: REDIS_URL
-        sync: false
+      - key: USE_REDIS
+        value: false
+      - key: USE_MONGODB
+        value: false
       - key: SECRET_KEY
         generateValue: true
       - key: JWT_SECRET_KEY

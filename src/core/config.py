@@ -25,39 +25,41 @@ class Config:
         self.HOST = os.getenv('HOST', '0.0.0.0')
         self.PORT = int(os.getenv('PORT', 5000))
         
-        # Redis settings
-        self.REDIS_URL = os.getenv('REDIS_URL')
-        if self.REDIS_URL:
-            # Parse Redis URL for individual components
-            from urllib.parse import urlparse
-            redis_url = urlparse(self.REDIS_URL)
-            self.REDIS_HOST = redis_url.hostname
-            self.REDIS_PORT = redis_url.port or 6379
-            self.REDIS_PASSWORD = redis_url.password
-            self.REDIS_DB = int(redis_url.path.lstrip('/') or 0)
-        else:
-            self.REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
-            self.REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
-            self.REDIS_DB = int(os.getenv('REDIS_DB', 0))
-            self.REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
+        # Optional Redis settings
+        self.USE_REDIS = os.getenv('USE_REDIS', 'false').lower() == 'true'
+        if self.USE_REDIS:
+            self.REDIS_URL = os.getenv('REDIS_URL')
+            if self.REDIS_URL:
+                from urllib.parse import urlparse
+                redis_url = urlparse(self.REDIS_URL)
+                self.REDIS_HOST = redis_url.hostname
+                self.REDIS_PORT = redis_url.port or 6379
+                self.REDIS_PASSWORD = redis_url.password
+                self.REDIS_DB = int(redis_url.path.lstrip('/') or 0)
+            else:
+                self.REDIS_HOST = os.getenv('REDIS_HOST', 'localhost')
+                self.REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
+                self.REDIS_DB = int(os.getenv('REDIS_DB', 0))
+                self.REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', None)
         
-        # MongoDB settings
-        self.MONGODB_URI = os.getenv('MONGODB_URI')
-        if self.MONGODB_URI:
-            # Parse MongoDB URI for individual components
-            from urllib.parse import urlparse
-            mongo_url = urlparse(self.MONGODB_URI)
-            self.MONGODB_HOST = mongo_url.hostname
-            self.MONGODB_PORT = mongo_url.port or 27017
-            self.MONGODB_DB = mongo_url.path.lstrip('/') or 'icp_analyzer'
-            self.MONGODB_USER = mongo_url.username
-            self.MONGODB_PASSWORD = mongo_url.password
-        else:
-            self.MONGODB_HOST = os.getenv('MONGODB_HOST', 'localhost')
-            self.MONGODB_PORT = int(os.getenv('MONGODB_PORT', 27017))
-            self.MONGODB_DB = os.getenv('MONGODB_DB', 'icp_analyzer')
-            self.MONGODB_USER = os.getenv('MONGODB_USER', '')
-            self.MONGODB_PASSWORD = os.getenv('MONGODB_PASSWORD', '')
+        # Optional MongoDB settings
+        self.USE_MONGODB = os.getenv('USE_MONGODB', 'false').lower() == 'true'
+        if self.USE_MONGODB:
+            self.MONGODB_URI = os.getenv('MONGODB_URI')
+            if self.MONGODB_URI:
+                from urllib.parse import urlparse
+                mongo_url = urlparse(self.MONGODB_URI)
+                self.MONGODB_HOST = mongo_url.hostname
+                self.MONGODB_PORT = mongo_url.port or 27017
+                self.MONGODB_DB = mongo_url.path.lstrip('/') or 'icp_analyzer'
+                self.MONGODB_USER = mongo_url.username
+                self.MONGODB_PASSWORD = mongo_url.password
+            else:
+                self.MONGODB_HOST = os.getenv('MONGODB_HOST', 'localhost')
+                self.MONGODB_PORT = int(os.getenv('MONGODB_PORT', 27017))
+                self.MONGODB_DB = os.getenv('MONGODB_DB', 'icp_analyzer')
+                self.MONGODB_USER = os.getenv('MONGODB_USER', '')
+                self.MONGODB_PASSWORD = os.getenv('MONGODB_PASSWORD', '')
         
         # Celery settings
         self.CELERY_BROKER_URL = self.REDIS_URL or self.get_redis_url()
@@ -92,7 +94,7 @@ class Config:
         self.ANALYSIS_TIMEOUT = int(os.getenv('ANALYSIS_TIMEOUT', 300))  # 5 minutes
         
         # Cache settings
-        self.CACHE_TYPE = os.getenv('CACHE_TYPE', 'redis')
+        self.CACHE_TYPE = os.getenv('CACHE_TYPE', 'simple' if not self.USE_REDIS else 'redis')
         self.CACHE_DEFAULT_TIMEOUT = int(os.getenv('CACHE_DEFAULT_TIMEOUT', 300))
         self.CACHE_KEY_PREFIX = os.getenv('CACHE_KEY_PREFIX', 'icp_analyzer')
         
@@ -107,16 +109,19 @@ class Config:
         
         self.HUBSPOT_API_KEY = os.getenv('HUBSPOT_API_KEY', '')
     
-    def get_redis_url(self) -> str:
+    def get_redis_url(self) -> Optional[str]:
         """Get Redis URL with authentication if configured."""
+        if not self.USE_REDIS:
+            return None
         auth = f":{self.REDIS_PASSWORD}@" if self.REDIS_PASSWORD else ""
         return f"redis://{auth}{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DB}"
     
-    def get_mongodb_url(self) -> str:
+    def get_mongodb_url(self) -> Optional[str]:
         """Get MongoDB URL with authentication if configured."""
+        if not self.USE_MONGODB:
+            return None
         if self.MONGODB_URI:
             return self.MONGODB_URI
-        
         auth = f"{self.MONGODB_USER}:{self.MONGODB_PASSWORD}@" if self.MONGODB_USER and self.MONGODB_PASSWORD else ""
         return f"mongodb://{auth}{self.MONGODB_HOST}:{self.MONGODB_PORT}/{self.MONGODB_DB}"
     
@@ -124,8 +129,7 @@ class Config:
         """Validate required configuration settings."""
         required_vars = [
             'SECRET_KEY',
-            'JWT_SECRET_KEY',
-            'MONGODB_DB'
+            'JWT_SECRET_KEY'
         ]
         
         missing_vars = [var for var in required_vars if not getattr(self, var)]
