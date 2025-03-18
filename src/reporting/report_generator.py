@@ -1,18 +1,15 @@
 import os
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Generator
-import json
+from typing import Dict, Any, List, Optional
 import gc
 import matplotlib.pyplot as plt
 import pandas as pd
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet
 from pptx import Presentation
 from docx import Document
-from docx.shared import Inches
-import io
 from src.config import REPORTS_DIR
 
 class ReportGenerator:
@@ -22,8 +19,11 @@ class ReportGenerator:
         """Initialize the report generator."""
         self.reports_dir = REPORTS_DIR
         os.makedirs(self.reports_dir, exist_ok=True)
-        # Set matplotlib to use a non-interactive backend
+        # Set matplotlib to use a non-interactive backend with minimal memory usage
         plt.switch_backend('Agg')
+        plt.rcParams['figure.max_open_warning'] = 0
+        plt.rcParams['figure.dpi'] = 100
+        plt.rcParams['figure.figsize'] = [10, 6]
     
     def generate_report(self, analysis_data: Dict[str, Any], report_type: str,
                        metrics: Optional[List[str]] = None,
@@ -32,6 +32,9 @@ class ReportGenerator:
         try:
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"report_{timestamp}"
+            
+            # Clean up any existing matplotlib figures
+            plt.close('all')
             
             if report_type == 'pdf':
                 return self._generate_pdf_report(analysis_data, filename, metrics, branding)
@@ -174,7 +177,7 @@ class ReportGenerator:
         """Generate an Excel report."""
         filepath = os.path.join(self.reports_dir, f"{filename}.xlsx")
         
-        # Create DataFrame with only required columns
+        # Create DataFrame with only required columns and optimize memory usage
         if metrics:
             data = {metric: [analysis_data.get(metric, 'N/A')] for metric in metrics}
         else:
@@ -182,12 +185,20 @@ class ReportGenerator:
             data = {key: [value] for key, value in analysis_data.items() 
                    if not isinstance(value, (dict, list))}
         
+        # Create DataFrame with optimized memory usage
         df = pd.DataFrame(data)
+        
+        # Optimize DataFrame memory usage
+        for col in df.columns:
+            if df[col].dtype == 'object':
+                df[col] = df[col].astype('category')
         
         # Save to Excel with optimized settings
         with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Analysis Results')
         
+        # Clear DataFrame from memory
+        del df
         return f"{filename}.xlsx"
     
     def export_chart(self, chart_data: Dict[str, Any], chart_type: str,
@@ -219,7 +230,7 @@ class ReportGenerator:
             plt.ylabel(chart_data.get('ylabel', ''))
             
             # Save chart with optimized settings
-            plt.savefig(filepath, bbox_inches='tight', pad_inches=0.1)
+            plt.savefig(filepath, bbox_inches='tight', pad_inches=0.1, optimize=True)
             plt.close()
             
             return filename
