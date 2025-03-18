@@ -1,0 +1,73 @@
+services:
+  - type: web
+    name: icp-analyzer
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 4 --threads 2 --timeout 120
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.8.0
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: app.py
+      - key: MONGODB_URI
+        fromDatabase:
+          name: icp-analyzer-mongodb
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: icp-analyzer-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: uploads
+      mountPath: /app/uploads
+      sizeGB: 10
+
+  - type: redis
+    name: icp-analyzer-redis
+    plan: free
+    ipAllowList: []
+
+  - type: worker
+    name: icp-analyzer-celery
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A src.core.tasks worker --loglevel=info
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.8.0
+      - key: FLASK_ENV
+        value: production
+      - key: FLASK_APP
+        value: app.py
+      - key: MONGODB_URI
+        fromDatabase:
+          name: icp-analyzer-mongodb
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: icp-analyzer-redis
+          property: connectionString
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: icp-analyzer
+          property: SECRET_KEY
+      - key: JWT_SECRET_KEY
+        fromService:
+          type: web
+          name: icp-analyzer
+          property: JWT_SECRET_KEY
+    disk:
+      name: uploads
+      mountPath: /app/uploads
+      sizeGB: 10 

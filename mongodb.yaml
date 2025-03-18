@@ -1,0 +1,15 @@
+services:
+  - type: pserv
+    name: icp-analyzer-mongodb
+    env: docker
+    image: mongo:4.4
+    disk:
+      name: mongodb_data
+      mountPath: /data/db
+      sizeGB: 10
+    envVars:
+      - key: MONGO_INITDB_DATABASE
+        value: icp_analyzer
+    command: mongod --bind_ip_all
+    ipAllowList: []
+    plan: free 

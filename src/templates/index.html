@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICP Analyzer - Customer Testimonial Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/chart.js@4.0.0/dist/chart.min.css" rel="stylesheet">
+    <style>
+        .loading {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+        }
+        .loading-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .result-card {
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        .result-card:hover {
+            transform: translateY(-5px);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 30px;
+        }
+        .url-input {
+            margin-bottom: 10px;
+        }
+        .url-input:last-child {
+            margin-bottom: 0;
+        }
+        .comparison-section, .competitive-section {
+            display: none;
+        }
+        .website-comparison {
+            margin-bottom: 30px;
+        }
+        .website-comparison:last-child {
+            margin-bottom: 0;
+        }
+        .trend-chart {
+            height: 200px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">ICP Analyzer</a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-8 offset-md-2">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Analyze Website Testimonials</h5>
+                        <form id="analyzeForm">
+                            <div class="mb-3">
+                                <label class="form-label">Analysis Type</label>
+                                <select class="form-select" id="analysisType" name="analysis_type">
+                                    <option value="single">Single Website Analysis</option>
+                                    <option value="comparative">Comparative Analysis</option>
+                                    <option value="competitive">Competitive Analysis</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="includeAdvanced" name="include_advanced">
+                                    <label class="form-check-label" for="includeAdvanced">
+                                        Include Advanced Analytics
+                                    </label>
+                                </div>
+                            </div>
+                            <div id="urlInputs">
+                                <div class="url-input">
+                                    <label for="url1" class="form-label">Website URL</label>
+                                    <input type="url" class="form-control" id="url1" name="urls[]" required
+                                           placeholder="https://example.com">
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-secondary mb-3" onclick="addUrlInput()">Add Another URL</button>
+                            <div id="daysBackInput" style="display: none;">
+                                <label for="daysBack" class="form-label">Days of Historical Data</label>
+                                <input type="number" class="form-control" id="daysBack" name="days_back" value="30" min="1" max="365">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Analyze</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <h3>Recent Analyses</h3>
+                <div id="recentAnalyses" class="row">
+                    <!-- Recent analyses will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div id="results" style="display: none;">
+                    <h3>Analysis Results</h3>
+                    
+                    <!-- Report Generation Controls -->
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">Generate Report</h5>
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Report Format</label>
+                                        <select class="form-select" id="reportFormat">
+                                            <option value="pdf">PDF</option>
+                                            <option value="pptx">PowerPoint</option>
+                                            <option value="docx">Word</option>
+                                            <option value="excel">Excel</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Company Name (Optional)</label>
+                                        <input type="text" class="form-control" id="companyName" placeholder="Your Company Name">
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">&nbsp;</label>
+                                        <button type="button" class="btn btn-primary w-100" onclick="generateReport()">
+                                            Generate Report
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Single Analysis Results -->
+                    <div id="singleAnalysis">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Overview</h5>
+                                        <div id="overviewStats"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Sentiment Analysis</h5>
+                                        <div class="chart-container">
+                                            <canvas id="sentimentChart"></canvas>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                onclick="exportChart('sentimentChart', 'Sentiment Analysis')">
+                                            Export Chart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Product Mentions</h5>
+                                        <div class="chart-container">
+                                            <canvas id="productChart"></canvas>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                onclick="exportChart('productChart', 'Product Mentions')">
+                                            Export Chart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Customer Segments</h5>
+                                        <div class="chart-container">
+                                            <canvas id="segmentChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Key Benefits</h5>
+                                        <div id="benefitsList"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Pain Points</h5>
+                                        <div id="painPointsList"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comparative Analysis Results -->
+                    <div id="comparativeAnalysis" class="comparison-section">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Comparative Overview</h5>
+                                        <div id="comparativeOverview"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Sentiment Comparison</h5>
+                                        <div class="chart-container">
+                                            <canvas id="comparativeSentimentChart"></canvas>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                onclick="exportChart('comparativeSentimentChart', 'Sentiment Comparison')">
+                                            Export Chart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Product Mentions Comparison</h5>
+                                        <div class="chart-container">
+                                            <canvas id="comparativeProductChart"></canvas>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                onclick="exportChart('comparativeProductChart', 'Product Mentions Comparison')">
+                                            Export Chart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Common Themes</h5>
+                                        <div id="commonThemes"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Unique Insights</h5>
+                                        <div id="uniqueInsights"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Competitive Analysis Results -->
+                    <div id="competitiveAnalysis" class="competitive-section">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Market Positioning</h5>
+                                        <div id="marketPositioning"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Competitive Advantages</h5>
+                                        <div id="competitiveAdvantages"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Market Gaps</h5>
+                                        <div id="marketGaps"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Customer Segment Overlap</h5>
+                                        <div id="segmentOverlap"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Trend Analysis</h5>
+                                        <div class="trend-chart">
+                                            <canvas id="sentimentTrendChart"></canvas>
+                                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                    onclick="exportChart('sentimentTrendChart', 'Sentiment Trend')">
+                                                Export Chart
+                                            </button>
+                                        </div>
+                                        <div class="trend-chart">
+                                            <canvas id="themeTrendChart"></canvas>
+                                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                    onclick="exportChart('themeTrendChart', 'Theme Trends')">
+                                                Export Chart
+                                            </button>
+                                        </div>
+                                        <div class="trend-chart">
+                                            <canvas id="productTrendChart"></canvas>
+                                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                    onclick="exportChart('productTrendChart', 'Product Trends')">
+                                                Export Chart
+                                            </button>
+                                        </div>
+                                        <div class="trend-chart">
+                                            <canvas id="segmentTrendChart"></canvas>
+                                            <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                    onclick="exportChart('segmentTrendChart', 'Customer Segment Trends')">
+                                                Export Chart
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Analytics Results -->
+                    <div id="advancedAnalytics" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h4>Advanced Analytics</h4>
+                            </div>
+                        </div>
+
+                        <!-- Topic Modeling -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Topic Modeling</h5>
+                                        <div class="chart-container">
+                                            <canvas id="topicDistributionChart"></canvas>
+                                        </div>
+                                        <div id="topicDetails" class="mt-3"></div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                onclick="exportChart('topicDistributionChart', 'Topic Distribution')">
+                                            Export Chart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Named Entities</h5>
+                                        <div id="namedEntities"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Aspect Sentiment and Emotions -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Aspect-Based Sentiment</h5>
+                                        <div class="chart-container">
+                                            <canvas id="aspectSentimentChart"></canvas>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                onclick="exportChart('aspectSentimentChart', 'Aspect Sentiment')">
+                                            Export Chart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Emotion Analysis</h5>
+                                        <div class="chart-container">
+                                            <canvas id="emotionChart"></canvas>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                onclick="exportChart('emotionChart', 'Emotion Distribution')">
+                                            Export Chart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Customer Segments -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Customer Segments</h5>
+                                        <div class="chart-container">
+                                            <canvas id="segmentChart"></canvas>
+                                        </div>
+                                        <div id="segmentDetails" class="mt-3"></div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                onclick="exportChart('segmentChart', 'Customer Segments')">
+                                            Export Chart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Theme Network -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Theme Network</h5>
+                                        <div id="themeNetwork"></div>
+                                        <div id="networkMetrics" class="mt-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Time Series Analysis -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Time Series Analysis</h5>
+                                        <div class="chart-container">
+                                            <canvas id="timeSeriesChart"></canvas>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary mt-2" 
+                                                onclick="exportChart('timeSeriesChart', 'Time Series')">
+                                            Export Chart
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Anomaly Detection -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="card result-card">
+                                    <div class="card-body">
+                                        <h5 class="card-title">Anomaly Detection</h5>
+                                        <div id="anomalies"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading">
+        <div class="loading-content">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Analyzing testimonials...</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.0.0/dist/chart.min.js"></script>
+    <script>
+        let urlCounter = 1;
+
+        function addUrlInput() {
+            urlCounter++;
+            const urlInputs = document.getElementById('urlInputs');
+            const newInput = document.createElement('div');
+            newInput.className = 'url-input';
+            newInput.innerHTML = `
+                <label for="url${urlCounter}" class="form-label">Website URL ${urlCounter}</label>
+                <div class="input-group">
+                    <input type="url" class="form-control" id="url${urlCounter}" name="urls[]" required
+                           placeholder="https://example.com">
+                    <button type="button" class="btn btn-outline-danger" onclick="removeUrlInput(this)">Remove</button>
+                </div>
+            `;
+            urlInputs.appendChild(newInput);
+        }
+
+        function removeUrlInput(button) {
+            button.closest('.url-input').remove();
+        }
+
+        // Show/hide days back input based on analysis type
+        document.getElementById('analysisType').addEventListener('change', function() {
+            const daysBackInput = document.getElementById('daysBackInput');
+            daysBackInput.style.display = this.value === 'competitive' ? 'block' : 'none';
+        });
+
+        // Load recent analyses
+        async function loadRecentAnalyses() {
+            try {
+                const response = await fetch('/recent');
+                const analyses = await response.json();
+                
+                const container = document.getElementById('recentAnalyses');
+                container.innerHTML = analyses.map(analysis => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card">
+                            <div class="card-body">
+                                <h6 class="card-title">${analysis.url}</h6>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        ${new Date(analysis.timestamp).toLocaleString()}
+                                    </small>
+                                </p>
+                                <a href="/results/${analysis.filename}" class="btn btn-sm btn-primary">View Results</a>
+                                <a href="/download/${analysis.filename}" class="btn btn-sm btn-outline-primary">Download</a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading recent analyses:', error);
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('analyzeForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const urls = Array.from(document.querySelectorAll('input[name="urls[]"]')).map(input => input.value);
+            const analysisType = document.getElementById('analysisType').value;
+            const includeAdvanced = document.getElementById('includeAdvanced').checked;
+            const loading = document.querySelector('.loading');
+            const results = document.getElementById('results');
+            
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            
+            try {
+                const formData = new FormData();
+                urls.forEach(url => formData.append('urls[]', url));
+                formData.append('analysis_type', analysisType);
+                formData.append('include_advanced', includeAdvanced);
+                if (analysisType === 'competitive') {
+                    formData.append('days_back', document.getElementById('daysBack').value);
+                }
+                
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                // Hide all analysis sections
+                document.getElementById('singleAnalysis').style.display = 'none';
+                document.getElementById('comparativeAnalysis').style.display = 'none';
+                document.getElementById('competitiveAnalysis').style.display = 'none';
+                document.getElementById('advancedAnalytics').style.display = 'none';
+                
+                // Show appropriate section and display results
+                if (data.comparison) {
+                    displayComparativeResults(data.comparison);
+                    document.getElementById('comparativeAnalysis').style.display = 'block';
+                } else if (data.analysis && analysisType === 'competitive') {
+                    displayCompetitiveResults(data.analysis);
+                    document.getElementById('competitiveAnalysis').style.display = 'block';
+                } else {
+                    displayResults(data.analysis);
+                    document.getElementById('singleAnalysis').style.display = 'block';
+                }
+                
+                results.style.display = 'block';
+                loadRecentAnalyses();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while analyzing the websites.');
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        // Display single analysis results
+        function displayResults(analysis) {
+            currentAnalysisData = analysis;
+            
+            // Show/hide advanced analytics section
+            const advancedSection = document.getElementById('advancedAnalytics');
+            if (analysis.advanced_analysis) {
+                displayAdvancedAnalytics(analysis.advanced_analysis);
+                advancedSection.style.display = 'block';
+            } else {
+                advancedSection.style.display = 'none';
+            }
+            
+            // Overview stats
+            document.getElementById('overviewStats').innerHTML = `
+                <p>Total Testimonials: ${analysis.total_testimonials}</p>
+                <p>Key Themes: ${analysis.key_themes.join(', ')}</p>
+            `;
+
+            // Sentiment chart
+            const sentimentCtx = document.getElementById('sentimentChart').getContext('2d');
+            new Chart(sentimentCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['Positive', 'Negative', 'Neutral'],
+                    datasets: [{
+                        data: [
+                            analysis.sentiment_analysis.positive_count,
+                            analysis.sentiment_analysis.negative_count,
+                            analysis.sentiment_analysis.neutral_count
+                        ],
+                        backgroundColor: ['#28a745', '#dc3545', '#6c757d']
+                    }]
+                }
+            });
+
+            // Product mentions chart
+            const productCtx = document.getElementById('productChart').getContext('2d');
+            new Chart(productCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(analysis.product_mentions),
+                    datasets: [{
+                        label: 'Mentions',
+                        data: Object.values(analysis.product_mentions),
+                        backgroundColor: '#007bff'
+                    }]
+                }
+            });
+
+            // Customer segments chart
+            const segmentCtx = document.getElementById('segmentChart').getContext('2d');
+            new Chart(segmentCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(analysis.customer_segments),
+                    datasets: [{
+                        data: Object.values(analysis.customer_segments).map(seg => seg.length),
+                        backgroundColor: ['#007bff', '#28a745', '#ffc107', '#6c757d']
+                    }]
+                }
+            });
+
+            // Benefits list
+            document.getElementById('benefitsList').innerHTML = Object.entries(analysis.benefits_mentioned)
+                .map(([type, quotes]) => `
+                    <h6>${type.replace('_', ' ').toUpperCase()}</h6>
+                    <ul>
+                        ${quotes.slice(0, 3).map(quote => `<li>${quote}</li>`).join('')}
+                    </ul>
+                `).join('');
+
+            // Pain points list
+            document.getElementById('painPointsList').innerHTML = Object.entries(analysis.pain_points)
+                .map(([type, quotes]) => `
+                    <h6>${type.replace('_', ' ').toUpperCase()}</h6>
+                    <ul>
+                        ${quotes.slice(0, 3).map(quote => `<li>${quote}</li>`).join('')}
+                    </ul>
+                `).join('');
+        }
+
+        // Display comparative analysis results
+        function displayComparativeResults(comparison) {
+            currentAnalysisData = comparison;
+            // Overview stats
+            document.getElementById('comparativeOverview').innerHTML = `
+                <p>Total Websites Analyzed: ${comparison.websites.length}</p>
+                <p>Total Testimonials Range: ${comparison.comparative_metrics.total_testimonials.min} - ${comparison.comparative_metrics.total_testimonials.max}</p>
+                <p>Average Testimonials per Website: ${Math.round(comparison.comparative_metrics.total_testimonials.average)}</p>
+                <p>Most Positive Website: ${comparison.comparative_metrics.sentiment_comparison.most_positive}</p>
+                <p>Most Negative Website: ${comparison.comparative_metrics.sentiment_comparison.most_negative}</p>
+            `;
+
+            // Sentiment comparison chart
+            const sentimentCtx = document.getElementById('comparativeSentimentChart').getContext('2d');
+            new Chart(sentimentCtx, {
+                type: 'bar',
+                data: {
+                    labels: comparison.websites.map(w => w.url),
+                    datasets: [{
+                        label: 'Average Sentiment',
+                        data: comparison.websites.map(w => w.sentiment_analysis.average_sentiment),
+                        backgroundColor: '#007bff'
+                    }]
+                }
+            });
+
+            // Product mentions comparison chart
+            const productCtx = document.getElementById('comparativeProductChart').getContext('2d');
+            new Chart(productCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(comparison.comparative_metrics.product_mentions_comparison),
+                    datasets: comparison.websites.map((website, index) => ({
+                        label: website.url,
+                        data: Object.values(comparison.comparative_metrics.product_mentions_comparison)
+                            .map(mentions => mentions[index].count),
+                        backgroundColor: ['#007bff', '#28a745', '#ffc107', '#6c757d'][index % 4]
+                    }))
+                }
+            });
+
+            // Common themes
+            document.getElementById('commonThemes').innerHTML = `
+                <ul>
+                    ${comparison.common_themes.map(theme => `<li>${theme}</li>`).join('')}
+                </ul>
+            `;
+
+            // Unique insights
+            document.getElementById('uniqueInsights').innerHTML = Object.entries(comparison.unique_insights)
+                .map(([url, insights]) => `
+                    <h6>${url}</h6>
+                    <ul>
+                        ${insights.map(insight => `<li>${insight}</li>`).join('')}
+                    </ul>
+                `).join('');
+        }
+
+        // Display competitive analysis results
+        function displayCompetitiveResults(analysis) {
+            currentAnalysisData = analysis;
+            // Market positioning
+            document.getElementById('marketPositioning').innerHTML = `
+                <h6>Product Focus</h6>
+                <ul>
+                    <li>Unique to Target: ${analysis.competitive_insights.market_positioning.product_focus.unique_to_target.join(', ')}</li>
+                    <li>Unique to Competitors: ${analysis.competitive_insights.market_positioning.product_focus.unique_to_competitors.join(', ')}</li>
+                    <li>Common Products: ${analysis.competitive_insights.market_positioning.product_focus.common_products.join(', ')}</li>
+                </ul>
+                <h6>Benefit Emphasis</h6>
+                <ul>
+                    <li>Unique to Target: ${analysis.competitive_insights.market_positioning.benefit_emphasis.unique_to_target.join(', ')}</li>
+                    <li>Unique to Competitors: ${analysis.competitive_insights.market_positioning.benefit_emphasis.unique_to_competitors.join(', ')}</li>
+                    <li>Common Benefits: ${analysis.competitive_insights.market_positioning.benefit_emphasis.common_benefits.join(', ')}</li>
+                </ul>
+                <h6>Customer Segment Focus</h6>
+                <ul>
+                    <li>Unique to Target: ${analysis.competitive_insights.market_positioning.customer_segment_focus.unique_to_target.join(', ')}</li>
+                    <li>Unique to Competitors: ${analysis.competitive_insights.market_positioning.customer_segment_focus.unique_to_competitors.join(', ')}</li>
+                    <li>Common Segments: ${analysis.competitive_insights.market_positioning.customer_segment_focus.common_segments.join(', ')}</li>
+                </ul>
+            `;
+
+            // Competitive advantages
+            document.getElementById('competitiveAdvantages').innerHTML = `
+                <ul>
+                    ${analysis.competitive_insights.competitive_advantages.map(advantage => `<li>${advantage}</li>`).join('')}
+                </ul>
+            `;
+
+            // Market gaps
+            document.getElementById('marketGaps').innerHTML = `
+                <ul>
+                    ${analysis.competitive_insights.market_gaps.map(gap => `<li>${gap}</li>`).join('')}
+                </ul>
+            `;
+
+            // Customer segment overlap
+            document.getElementById('segmentOverlap').innerHTML = Object.entries(analysis.competitive_insights.customer_segment_overlap)
+                .map(([segment, overlaps]) => `
+                    <h6>${segment.replace('_', ' ').toUpperCase()}</h6>
+                    <ul>
+                        ${overlaps.map(overlap => `
+                            <li>${overlap.competitor_url}:
+                                Target: ${overlap.target_count},
+                                Competitor: ${overlap.competitor_count}
+                            </li>
+                        `).join('')}
+                    </ul>
+                `).join('');
+
+            // Trend analysis
+            const sentimentTrendCtx = document.getElementById('sentimentTrendChart').getContext('2d');
+            new Chart(sentimentTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: analysis.trend_analysis.sentiment_trend.data.map(d => new Date(d.date).toLocaleDateString()),
+                    datasets: [{
+                        label: 'Sentiment',
+                        data: analysis.trend_analysis.sentiment_trend.data.map(d => d.sentiment),
+                        borderColor: '#007bff',
+                        tension: 0.1
+                    }]
+                }
+            });
+
+            // Theme trends
+            const themeTrendCtx = document.getElementById('themeTrendChart').getContext('2d');
+            const themeData = analysis.trend_analysis.theme_trends;
+            new Chart(themeTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(themeData[Object.keys(themeData)[0]]),
+                    datasets: Object.entries(themeData).map(([theme, dates], index) => ({
+                        label: theme,
+                        data: Object.values(dates),
+                        borderColor: ['#007bff', '#28a745', '#ffc107', '#6c757d'][index % 4],
+                        tension: 0.1
+                    }))
+                }
+            });
+
+            // Product trends
+            const productTrendCtx = document.getElementById('productTrendChart').getContext('2d');
+            const productData = analysis.trend_analysis.product_trends;
+            new Chart(productTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(productData[Object.keys(productData)[0]]),
+                    datasets: Object.entries(productData).map(([product, dates], index) => ({
+                        label: product,
+                        data: Object.values(dates),
+                        borderColor: ['#007bff', '#28a745', '#ffc107', '#6c757d'][index % 4],
+                        tension: 0.1
+                    }))
+                }
+            });
+
+            // Customer segment trends
+            const segmentTrendCtx = document.getElementById('segmentTrendChart').getContext('2d');
+            const segmentData = analysis.trend_analysis.customer_segment_trends;
+            new Chart(segmentTrendCtx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(segmentData[Object.keys(segmentData)[0]]),
+                    datasets: Object.entries(segmentData).map(([segment, dates], index) => ({
+                        label: segment,
+                        data: Object.values(dates),
+                        borderColor: ['#007bff', '#28a745', '#ffc107', '#6c757d'][index % 4],
+                        tension: 0.1
+                    }))
+                }
+            });
+        }
+
+        // Display advanced analytics results
+        function displayAdvancedAnalytics(advancedAnalysis) {
+            // Topic Modeling
+            const topicCtx = document.getElementById('topicDistributionChart').getContext('2d');
+            new Chart(topicCtx, {
+                type: 'bar',
+                data: {
+                    labels: advancedAnalysis.topic_modeling.topics.map(t => `Topic ${t.topic_id + 1}`),
+                    datasets: [{
+                        label: 'Coherence Score',
+                        data: advancedAnalysis.topic_modeling.topics.map(t => t.coherence_score),
+                        backgroundColor: '#007bff'
+                    }]
+                }
+            });
+
+            // Topic Details
+            document.getElementById('topicDetails').innerHTML = advancedAnalysis.topic_modeling.topics
+                .map(topic => `
+                    <div class="mb-2">
+                        <strong>Topic ${topic.topic_id + 1}:</strong>
+                        <p class="mb-0">${topic.top_terms.join(', ')}</p>
+                    </div>
+                `).join('');
+
+            // Named Entities
+            document.getElementById('namedEntities').innerHTML = Object.entries(advancedAnalysis.named_entities)
+                .map(([type, entities]) => `
+                    <h6>${type.toUpperCase()}</h6>
+                    <p>${entities.join(', ')}</p>
+                `).join('');
+
+            // Aspect Sentiment
+            const aspectCtx = document.getElementById('aspectSentimentChart').getContext('2d');
+            new Chart(aspectCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(advancedAnalysis.aspect_sentiment),
+                    datasets: [{
+                        label: 'Average Sentiment',
+                        data: Object.values(advancedAnalysis.aspect_sentiment)
+                            .map(data => data.average_sentiment),
+                        backgroundColor: '#007bff'
+                    }]
+                }
+            });
+
+            // Emotion Analysis
+            const emotionCtx = document.getElementById('emotionChart').getContext('2d');
+            new Chart(emotionCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(advancedAnalysis.emotion_analysis),
+                    datasets: [{
+                        label: 'Percentage',
+                        data: Object.values(advancedAnalysis.emotion_analysis),
+                        backgroundColor: '#28a745'
+                    }]
+                }
+            });
+
+            // Customer Segments
+            const segmentCtx = document.getElementById('segmentChart').getContext('2d');
+            new Chart(segmentCtx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(advancedAnalysis.customer_segments),
+                    datasets: [{
+                        data: Object.values(advancedAnalysis.customer_segments)
+                            .map(segment => segment.size),
+                        backgroundColor: ['#007bff', '#28a745', '#ffc107', '#6c757d']
+                    }]
+                }
+            });
+
+            // Segment Details
+            document.getElementById('segmentDetails').innerHTML = Object.entries(advancedAnalysis.customer_segments)
+                .map(([segment, data]) => `
+                    <div class="mb-3">
+                        <h6>${segment.replace('_', ' ').toUpperCase()}</h6>
+                        <p>Size: ${data.size} (${(data.percentage * 100).toFixed(1)}%)</p>
+                        <p>Top Terms: ${data.top_terms.join(', ')}</p>
+                        <p>Average Sentiment: ${data.average_sentiment.toFixed(2)}</p>
+                    </div>
+                `).join('');
+
+            // Theme Network
+            const network = advancedAnalysis.network_analysis;
+            document.getElementById('themeNetwork').innerHTML = `
+                <div class="network-graph">
+                    <!-- Network visualization will be added here -->
+                </div>
+            `;
+
+            // Network Metrics
+            document.getElementById('networkMetrics').innerHTML = `
+                <h6>Network Metrics</h6>
+                <p>Number of Nodes: ${network.nodes.length}</p>
+                <p>Number of Edges: ${network.edges.length}</p>
+                <p>Average Clustering Coefficient: ${Object.values(network.clustering).reduce((a, b) => a + b, 0) / Object.keys(network.clustering).length}</p>
+            `;
+
+            // Time Series
+            const timeSeriesCtx = document.getElementById('timeSeriesChart').getContext('2d');
+            new Chart(timeSeriesCtx, {
+                type: 'line',
+                data: {
+                    labels: advancedAnalysis.time_series.dates,
+                    datasets: [
+                        {
+                            label: 'Daily Sentiment',
+                            data: advancedAnalysis.time_series.sentiments,
+                            borderColor: '#007bff',
+                            alpha: 0.5
+                        },
+                        {
+                            label: '7-Day Moving Average',
+                            data: advancedAnalysis.time_series.moving_averages['7_day'],
+                            borderColor: '#28a745'
+                        },
+                        {
+                            label: '30-Day Moving Average',
+                            data: advancedAnalysis.time_series.moving_averages['30_day'],
+                            borderColor: '#ffc107'
+                        }
+                    ]
+                }
+            });
+
+            // Anomalies
+            document.getElementById('anomalies').innerHTML = advancedAnalysis.anomaly_detection
+                .map(anomaly => `
+                    <div class="mb-2">
+                        <strong>${anomaly.type.toUpperCase()} Sentiment Anomaly:</strong>
+                        <p class="mb-0">${anomaly.text}</p>
+                        <small class="text-muted">Sentiment Score: ${anomaly.sentiment.toFixed(2)}</small>
+                    </div>
+                `).join('');
+        }
+
+        // Generate report
+        async function generateReport() {
+            const reportFormat = document.getElementById('reportFormat').value;
+            const companyName = document.getElementById('companyName').value;
+            
+            try {
+                const response = await fetch('/generate_report', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        analysis_data: currentAnalysisData,
+                        report_type: reportFormat,
+                        branding: companyName ? { company_name: companyName } : undefined
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                // Download the report
+                window.location.href = data.download_url;
+                
+            } catch (error) {
+                console.error('Error generating report:', error);
+                alert('An error occurred while generating the report.');
+            }
+        }
+
+        // Export chart
+        async function exportChart(canvasId, title) {
+            const canvas = document.getElementById(canvasId);
+            const chart = Chart.getChart(canvas);
+            
+            if (!chart) {
+                alert('Chart not found');
+                return;
+            }
+            
+            const chartData = {
+                labels: chart.data.labels,
+                values: chart.data.datasets[0].data,
+                type: chart.config.type
+            };
+            
+            try {
+                const response = await fetch('/export_chart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        chart_data: chartData,
+                        chart_type: chart.config.type,
+                        title: title,
+                        filename: `${canvasId}_${new Date().toISOString().slice(0,10)}.png`
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                
+                // Download the chart image
+                window.location.href = data.download_url;
+                
+            } catch (error) {
+                console.error('Error exporting chart:', error);
+                alert('An error occurred while exporting the chart.');
+            }
+        }
+
+        // Load recent analyses on page load
+        loadRecentAnalyses();
+    </script>
+</body>
+</html> 
