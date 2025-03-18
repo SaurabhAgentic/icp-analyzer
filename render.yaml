@@ -2,24 +2,19 @@ services:
   - type: web
     name: icp-analyzer
     env: python
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 4 --threads 2 --timeout 120
+    buildCommand: pip install -r requirements.txt && python -m spacy download en_core_web_sm
+    startCommand: gunicorn wsgi:app
     envVars:
       - key: PYTHON_VERSION
-        value: 3.8.0
+        value: 3.8
       - key: FLASK_ENV
         value: production
       - key: FLASK_APP
-        value: app.py
+        value: wsgi.py
       - key: MONGODB_URI
-        fromDatabase:
-          name: icp-analyzer-mongodb
-          property: connectionString
+        sync: false
       - key: REDIS_URL
-        fromService:
-          type: redis
-          name: icp-analyzer-redis
-          property: connectionString
+        sync: false
       - key: SECRET_KEY
         generateValue: true
       - key: JWT_SECRET_KEY
@@ -28,7 +23,7 @@ services:
     autoDeploy: true
     disk:
       name: uploads
-      mountPath: /app/uploads
+      mountPath: /data/uploads
       sizeGB: 10
 
   - type: redis

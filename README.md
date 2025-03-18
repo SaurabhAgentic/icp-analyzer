@@ -64,7 +64,7 @@ pytest
 3. Configure the following environment variables:
    - `PYTHON_VERSION`: 3.8
    - `FLASK_ENV`: production
-   - `FLASK_APP`: src.app
+   - `FLASK_APP`: wsgi.py
    - `MONGODB_URI`: Your MongoDB connection string
    - `REDIS_URL`: Your Redis connection string
    - `SECRET_KEY`: Your secret key
@@ -77,7 +77,7 @@ pip install -r requirements.txt && python -m spacy download en_core_web_sm
 
 5. Set the start command:
 ```bash
-gunicorn src.app:app
+gunicorn wsgi:app
 ```
 
 ## Contributing
