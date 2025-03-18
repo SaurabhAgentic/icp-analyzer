@@ -174,31 +174,37 @@ class ReportGenerator:
     
     def _generate_excel_report(self, analysis_data: Dict[str, Any], filename: str,
                              metrics: Optional[List[str]] = None) -> str:
-        """Generate an Excel report."""
+        """Generate an Excel report with chunked processing."""
         filepath = os.path.join(self.reports_dir, f"{filename}.xlsx")
         
-        # Create DataFrame with only required columns and optimize memory usage
-        if metrics:
-            data = {metric: [analysis_data.get(metric, 'N/A')] for metric in metrics}
-        else:
-            # Only include non-dict and non-list values to reduce memory
-            data = {key: [value] for key, value in analysis_data.items() 
-                   if not isinstance(value, (dict, list))}
-        
-        # Create DataFrame with optimized memory usage
-        df = pd.DataFrame(data)
-        
-        # Optimize DataFrame memory usage
-        for col in df.columns:
-            if df[col].dtype == 'object':
-                df[col] = df[col].astype('category')
-        
-        # Save to Excel with optimized settings
+        # Process data in chunks
+        chunk_size = 1000
         with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Analysis Results')
+            for i in range(0, len(analysis_data), chunk_size):
+                chunk = dict(list(analysis_data.items())[i:i + chunk_size])
+                
+                # Create DataFrame for this chunk
+                if metrics:
+                    data = {metric: [chunk.get(metric, 'N/A')] for metric in metrics}
+                else:
+                    data = {key: [value] for key, value in chunk.items() 
+                           if not isinstance(value, (dict, list))}
+                
+                df = pd.DataFrame(data)
+                
+                # Optimize DataFrame memory usage
+                for col in df.columns:
+                    if df[col].dtype == 'object':
+                        df[col] = df[col].astype('category')
+                
+                # Write chunk to Excel
+                sheet_name = f'Data_{i//chunk_size + 1}'
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+                
+                # Clear DataFrame from memory
+                del df
+                gc.collect()
         
-        # Clear DataFrame from memory
-        del df
         return f"{filename}.xlsx"
     
     def export_chart(self, chart_data: Dict[str, Any], chart_type: str,
