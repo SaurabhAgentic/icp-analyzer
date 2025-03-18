@@ -1,7 +1,8 @@
 import os
 from datetime import datetime
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Generator
 import json
+import gc
 import matplotlib.pyplot as plt
 import pandas as pd
 from reportlab.lib import colors
@@ -12,32 +13,39 @@ from pptx import Presentation
 from docx import Document
 from docx.shared import Inches
 import io
+from src.config import REPORTS_DIR
 
 class ReportGenerator:
     """Class for generating reports in various formats."""
     
     def __init__(self):
         """Initialize the report generator."""
-        self.reports_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'reports')
+        self.reports_dir = REPORTS_DIR
         os.makedirs(self.reports_dir, exist_ok=True)
+        # Set matplotlib to use a non-interactive backend
+        plt.switch_backend('Agg')
     
     def generate_report(self, analysis_data: Dict[str, Any], report_type: str,
                        metrics: Optional[List[str]] = None,
                        branding: Optional[Dict[str, str]] = None) -> str:
         """Generate a report in the specified format."""
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"report_{timestamp}"
-        
-        if report_type == 'pdf':
-            return self._generate_pdf_report(analysis_data, filename, metrics, branding)
-        elif report_type == 'pptx':
-            return self._generate_pptx_report(analysis_data, filename, metrics, branding)
-        elif report_type == 'docx':
-            return self._generate_docx_report(analysis_data, filename, metrics, branding)
-        elif report_type == 'excel':
-            return self._generate_excel_report(analysis_data, filename, metrics)
-        else:
-            raise ValueError(f"Unsupported report type: {report_type}")
+        try:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            filename = f"report_{timestamp}"
+            
+            if report_type == 'pdf':
+                return self._generate_pdf_report(analysis_data, filename, metrics, branding)
+            elif report_type == 'pptx':
+                return self._generate_pptx_report(analysis_data, filename, metrics, branding)
+            elif report_type == 'docx':
+                return self._generate_docx_report(analysis_data, filename, metrics, branding)
+            elif report_type == 'excel':
+                return self._generate_excel_report(analysis_data, filename, metrics)
+            else:
+                raise ValueError(f"Unsupported report type: {report_type}")
+        finally:
+            # Clean up memory
+            gc.collect()
     
     def _generate_pdf_report(self, analysis_data: Dict[str, Any], filename: str,
                            metrics: Optional[List[str]] = None,
@@ -166,47 +174,55 @@ class ReportGenerator:
         """Generate an Excel report."""
         filepath = os.path.join(self.reports_dir, f"{filename}.xlsx")
         
-        # Create DataFrame
+        # Create DataFrame with only required columns
         if metrics:
             data = {metric: [analysis_data.get(metric, 'N/A')] for metric in metrics}
         else:
-            data = {key: [value] for key, value in analysis_data.items()}
+            # Only include non-dict and non-list values to reduce memory
+            data = {key: [value] for key, value in analysis_data.items() 
+                   if not isinstance(value, (dict, list))}
         
         df = pd.DataFrame(data)
         
-        # Save to Excel
-        df.to_excel(filepath, index=False)
+        # Save to Excel with optimized settings
+        with pd.ExcelWriter(filepath, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Analysis Results')
+        
         return f"{filename}.xlsx"
     
     def export_chart(self, chart_data: Dict[str, Any], chart_type: str,
                     title: str, filename: Optional[str] = None) -> str:
         """Export a chart as an image."""
-        if not filename:
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"chart_{timestamp}.png"
-        
-        filepath = os.path.join(self.reports_dir, filename)
-        
-        # Create figure
-        plt.figure(figsize=(10, 6))
-        
-        # Plot data based on chart type
-        if chart_type == 'bar':
-            plt.bar(chart_data['labels'], chart_data['values'])
-        elif chart_type == 'line':
-            plt.plot(chart_data['labels'], chart_data['values'])
-        elif chart_type == 'pie':
-            plt.pie(chart_data['values'], labels=chart_data['labels'])
-        elif chart_type == 'scatter':
-            plt.scatter(chart_data['x'], chart_data['y'])
-        
-        # Customize chart
-        plt.title(title)
-        plt.xlabel(chart_data.get('xlabel', ''))
-        plt.ylabel(chart_data.get('ylabel', ''))
-        
-        # Save chart
-        plt.savefig(filepath)
-        plt.close()
-        
-        return filename 
+        try:
+            if not filename:
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"chart_{timestamp}.png"
+            
+            filepath = os.path.join(self.reports_dir, filename)
+            
+            # Create figure with optimized settings
+            plt.figure(figsize=(10, 6), dpi=100)
+            
+            # Plot data based on chart type
+            if chart_type == 'bar':
+                plt.bar(chart_data['labels'], chart_data['values'])
+            elif chart_type == 'line':
+                plt.plot(chart_data['labels'], chart_data['values'])
+            elif chart_type == 'pie':
+                plt.pie(chart_data['values'], labels=chart_data['labels'])
+            elif chart_type == 'scatter':
+                plt.scatter(chart_data['x'], chart_data['y'])
+            
+            # Customize chart
+            plt.title(title)
+            plt.xlabel(chart_data.get('xlabel', ''))
+            plt.ylabel(chart_data.get('ylabel', ''))
+            
+            # Save chart with optimized settings
+            plt.savefig(filepath, bbox_inches='tight', pad_inches=0.1)
+            plt.close()
+            
+            return filename
+        finally:
+            # Clean up memory
+            gc.collect() 
