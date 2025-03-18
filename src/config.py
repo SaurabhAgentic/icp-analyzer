@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from functools import lru_cache
+from typing import Any
 
 # Load environment variables
 load_dotenv()
@@ -76,6 +77,46 @@ def get_openai_api_key():
     """Lazy load OpenAI API key."""
     return os.getenv('OPENAI_API_KEY')
 
+# Convenience functions for accessing settings
+def get_directory(name: str) -> str:
+    """Get a directory path by name."""
+    return get_directories()[name]
+
+def get_analysis_setting(name: str) -> Any:
+    """Get an analysis setting by name."""
+    return get_analysis_settings()[name]
+
+def get_app_setting(name: str) -> Any:
+    """Get an application setting by name."""
+    return get_app_settings()[name]
+
+def get_export_setting(name: str) -> Any:
+    """Get an export setting by name."""
+    return get_export_settings()[name]
+
 # Create directories if they don't exist
 for directory in get_directories().values():
-    os.makedirs(directory, exist_ok=True) 
+    os.makedirs(directory, exist_ok=True)
+
+# Export commonly used settings for backward compatibility
+REPORTS_DIR = get_directory('REPORTS_DIR')
+DATA_DIR = get_directory('DATA_DIR')
+VISUALIZATIONS_DIR = get_directory('VISUALIZATIONS_DIR')
+UPLOAD_FOLDER = get_directory('UPLOAD_FOLDER')
+MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
+
+# Export analysis settings
+DEFAULT_TIMEOUT = get_analysis_setting('DEFAULT_TIMEOUT')
+MAX_RETRIES = get_analysis_setting('MAX_RETRIES')
+MAX_URLS_PER_ANALYSIS = get_analysis_setting('MAX_URLS_PER_ANALYSIS')
+MAX_TESTIMONIALS_PER_URL = get_analysis_setting('MAX_TESTIMONIALS_PER_URL')
+ANALYSIS_TIMEOUT = get_analysis_setting('ANALYSIS_TIMEOUT')
+
+# Export app settings
+FLASK_ENV = get_app_setting('FLASK_ENV')
+FLASK_APP = get_app_setting('FLASK_APP')
+DEBUG = get_app_setting('DEBUG')
+
+# Export export settings
+EXPORT_FORMATS = get_export_setting('EXPORT_FORMATS')
+MAX_EXPORT_SIZE = get_export_setting('MAX_EXPORT_SIZE') 
